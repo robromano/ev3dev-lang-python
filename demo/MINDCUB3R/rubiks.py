@@ -517,7 +517,12 @@ class Rubiks(object):
         if rub.shutdown:
             return
 
-        output = check_output(['kociemba', ''.join(map(str, self.cube_kociemba))]).decode('ascii')
+        try:
+            output = check_output(['kociemba', ''.join(map(str, self.cube_kociemba))]).decode('ascii')
+        except subprocess.CalledProcessError:
+            Log.error(output)
+            raise
+            
         actions = output.strip().split()
         self.run_kociemba_actions(actions)
         self.cube_done()
@@ -556,6 +561,21 @@ class Rubiks(object):
             time.sleep(0.1)
 
 
+
+def go(log)
+    rub = Rubiks()
+    rub.wait_for_cube_insert()
+
+    # Push the cube to the right so that it is in the expected
+    # position when we begin scanning
+    rub.flipper_hold_cube(100)
+    rub.flipper_away(100)
+    
+    rub.scan()
+    rub.resolve()
+    rub.shutdown_robot()
+
+
 if __name__ == '__main__':
 
     # logging.basicConfig(filename='rubiks.log',
@@ -567,21 +587,17 @@ if __name__ == '__main__':
     logging.addLevelName(logging.ERROR, "\033[91m   %s\033[0m" % logging.getLevelName(logging.ERROR))
     logging.addLevelName(logging.WARNING, "\033[91m %s\033[0m" % logging.getLevelName(logging.WARNING))
 
-    rub = Rubiks()
+    for i in range(10):
+        try:
+            go(log)
+            break
+        except subprocess.CalledProcessError as e:
+            continue
+        except Exception as e:
+            log.exception(e)
+            rub.shutdown_robot()
+            sys.exit(1)
 
-    try:
-        rub.wait_for_cube_insert()
 
-        # Push the cube to the right so that it is in the expected
-        # position when we begin scanning
-        rub.flipper_hold_cube(100)
-        rub.flipper_away(100)
 
-        rub.scan()
-        rub.resolve()
-        rub.shutdown_robot()
 
-    except Exception as e:
-        log.exception(e)
-        rub.shutdown_robot()
-        sys.exit(1)
