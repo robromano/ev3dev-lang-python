@@ -5,6 +5,7 @@ from ev3dev.helper import LargeMotor, MediumMotor, ColorSensor, MotorStall
 from pprint import pformat
 from rubikscolorresolver import RubiksColorSolverGeneric
 from subprocess import check_output
+import subprocess
 from time import sleep
 import json
 import logging
@@ -514,7 +515,7 @@ class Rubiks(object):
 
     def resolve(self):
 
-        if rub.shutdown:
+        if self.shutdown:
             return
 
         try:
