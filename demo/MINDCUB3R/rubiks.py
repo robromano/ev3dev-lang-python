@@ -521,7 +521,7 @@ class Rubiks(object):
         try:
             output = check_output(['kociemba', ''.join(map(str, self.cube_kociemba))]).decode('ascii')
         except subprocess.CalledProcessError:
-            Log.error(output)
+            log.error(output)
             raise
             
         actions = output.strip().split()
@@ -563,8 +563,7 @@ class Rubiks(object):
 
 
 
-def go(log):
-    rub = Rubiks()
+def go(rub, log):
     rub.wait_for_cube_insert()
 
     # Push the cube to the right so that it is in the expected
@@ -588,15 +587,18 @@ if __name__ == '__main__':
     logging.addLevelName(logging.ERROR, "\033[91m   %s\033[0m" % logging.getLevelName(logging.ERROR))
     logging.addLevelName(logging.WARNING, "\033[91m %s\033[0m" % logging.getLevelName(logging.WARNING))
 
+    rub = None
     for i in range(10):
         try:
-            go(log)
+            rub = Rubiks()
+            go(rub, log)
             break
         except subprocess.CalledProcessError as e:
             continue
         except Exception as e:
             log.exception(e)
-            rub.shutdown_robot()
+            if rub:
+                rub.shutdown_robot()
             sys.exit(1)
 
 
