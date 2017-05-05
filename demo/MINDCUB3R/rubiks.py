@@ -519,10 +519,10 @@ class Rubiks(object):
             return
 
         try:
-            ret, output = subprocess.getstatusoutput("kociemba" + ''.join(map(str, self.cube_kociemba)))
+            ret, output = subprocess.getstatusoutput("kociemba " + ''.join(map(str, self.cube_kociemba)))
             if ret != 0:
                 log.error(output)
-                raise subprocess.CalledProcessError()
+                raise subprocess.CalledProcessError(ret, output)
 
             #output = check_output(['kociemba', ''.join(map(str, self.cube_kociemba))]).decode('ascii')
         except subprocess.CalledProcessError:
