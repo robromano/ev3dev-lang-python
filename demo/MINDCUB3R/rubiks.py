@@ -562,7 +562,7 @@ class Rubiks(object):
 
 
 
-def go(log)
+def go(log):
     rub = Rubiks()
     rub.wait_for_cube_insert()
 
