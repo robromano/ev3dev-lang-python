@@ -5,6 +5,7 @@ from ev3dev.helper import LargeMotor, MediumMotor, ColorSensor, MotorStall
 from pprint import pformat
 from rubikscolorresolver import RubiksColorSolverGeneric
 from subprocess import check_output
+from collections import defaultdict
 import subprocess
 from time import sleep
 import json
@@ -47,7 +48,7 @@ class Rubiks(object):
         self.cube = {}
         self.init_motors()
         self.state = ['U', 'D', 'F', 'L', 'B', 'R']
-        self.rgb_solver = None
+        self.scan_iters = 3 # args.scan_iters
         signal.signal(signal.SIGTERM, self.signal_term_handler)
         signal.signal(signal.SIGINT, self.signal_int_handler)
 
@@ -80,9 +81,6 @@ class Rubiks(object):
     def shutdown_robot(self):
         log.info('Shutting down')
         self.shutdown = True
-
-        if self.rgb_solver:
-            self.rgb_solver.shutdown = True
 
         for x in (self.flipper, self.turntable, self.colorarm):
             x.shutdown = True
@@ -327,6 +325,7 @@ class Rubiks(object):
         populate the crayola_colors in rubiks_rgb_solver.py
         """
         log.info("scan_middle()")
+        self.color_iters = defaultdict(dict)
         self.colors = {}
         self.k = 0
         self.scan_middle(1)
@@ -354,7 +353,36 @@ class Rubiks(object):
         self.scan_middle(6)
         raw_input('Paused')
 
-    def scan_face(self, face_number):
+    def store_color(self, iter):
+        current_color = tuple(self.color_sensor.rgb())
+        self.colors[int(Rubiks.scan_order[self.k])] = current_color
+        self.color_iters[iter][int(Rubiks.scan_order[self.k])] = current_color
+
+    def avg_color(self, k):
+        def cube(x):
+            return x ** (1. / 3)
+
+        r_sum = g_sum = b_sum = 0
+
+        for iter in range(self.scan_iters):
+            r, g, b = self.color_iters[iter][k]
+            log.info("[ {} ] Red = {} Green = {} Blue = {}".format(iter, r, g, b))
+            
+            r_sum += r^3
+            g_sum += g^3
+            b_sum += b^3
+
+        r = cube( r_sum / 3 )
+        g = cube( g_sum / 3 )
+        b = cube( b_sum / 3 )
+        log.info("[ AVG ] Red = {} Green = {} Blue = {}".format(r, g, b))
+        return (r, g, b)
+
+    def avg_colors(self):
+        for k in range(6):
+            self.colors[int(Rubiks.scan_order[k])] = self.avg_color(k)
+
+    def scan_face(self, face_number, iter):
         log.info("scan_face() %d/6" % face_number)
 
         if self.shutdown:
@@ -364,7 +392,7 @@ class Rubiks(object):
             self.flipper_away()
 
         self.colorarm_middle()
-        self.colors[int(Rubiks.scan_order[self.k])] = tuple(self.color_sensor.rgb())
+        self.store_color(iter)
 
         self.k += 1
         i = 1
@@ -381,8 +409,9 @@ class Rubiks(object):
 
             # 135 is 1/8 of full rotation
             if current_position >= (i * 135):
-                current_color = tuple(self.color_sensor.rgb())
-                self.colors[int(Rubiks.scan_order[self.k])] = current_color
+                self.store_color(iter)
+                #current_color = tuple(self.color_sensor.rgb())
+                #self.colors[int(Rubiks.scan_order[self.k])] = current_color
                 # log.info("%s: i %d, current_position %d, current_color %s" %
                 #          (self.turntable, i, current_position, current_color))
 
@@ -418,38 +447,43 @@ class Rubiks(object):
         log.info("\n")
 
     def scan(self):
-        log.info("scan()")
-        self.colors = {}
-        self.k = 0
-        self.scan_face(1)
+        for iter in range(self.scan_iters):
+            log.info("scan() - iter {}".format(iter))
+            self.colors = {}
+            self.k = 0
+            self.scan_face(1, iter)
 
-        self.flip()
-        self.scan_face(2)
+            self.flip()
+            self.scan_face(2, iter)
 
-        self.flip()
-        self.scan_face(3)
+            self.flip()
+            self.scan_face(3, iter)
 
-        self.rotate_cube(-1, 1)
-        self.flip()
-        self.scan_face(4)
+            self.rotate_cube(-1, 1)
+            self.flip()
+            self.scan_face(4, iter)
 
-        self.rotate_cube(1, 1)
-        self.flip()
-        self.scan_face(5)
+            self.rotate_cube(1, 1)
+            self.flip()
+            self.scan_face(5, iter)
 
-        self.flip()
-        self.scan_face(6)
+            self.flip()
+            self.scan_face(6, iter)
 
-        if self.shutdown:
-            return
+            if self.shutdown:
+                return
+
+            time.sleep(0.2)
+
+        rgb_solver = RubiksColorSolverGeneric(3)
+        self.avg_colors()
 
         log.info("RGB json:\n%s\n" % json.dumps(self.colors))
-        self.rgb_solver = RubiksColorSolverGeneric(3)
-        self.rgb_solver.enter_scan_data(self.colors)
-        self.rgb_solver.crunch_colors()
-        self.cube_kociemba = self.rgb_solver.cube_for_kociemba_strict()
+        rgb_solver.enter_scan_data(self.colors)
+        rgb_solver.crunch_colors()
+        self.cube_kociemba = rgb_solver.cube_for_kociemba_strict()
         log.info("Final Colors (kociemba): %s" % ''.join(self.cube_kociemba))
-
+        
         # This is only used if you want to rotate the cube so U is on top, F is
         # in the front, etc. You would do this if you were troubleshooting color
         # detection and you want to pause to compare the color pattern on the
