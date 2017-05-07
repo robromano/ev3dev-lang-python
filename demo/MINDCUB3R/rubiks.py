@@ -48,7 +48,7 @@ class Rubiks(object):
         self.cube = {}
         self.init_motors()
         self.state = ['U', 'D', 'F', 'L', 'B', 'R']
-        self.scan_iters = 3 # args.scan_iters
+        self.scan_iters = 1 # args.scan_iters
         signal.signal(signal.SIGTERM, self.signal_term_handler)
         signal.signal(signal.SIGINT, self.signal_int_handler)
 
@@ -476,7 +476,9 @@ class Rubiks(object):
             time.sleep(0.2)
 
         rgb_solver = RubiksColorSolverGeneric(3)
-        self.avg_colors()
+
+        if self.scan_iters > 1: 
+            self.avg_colors()
 
         log.info("RGB json:\n%s\n" % json.dumps(self.colors))
         rgb_solver.enter_scan_data(self.colors)
