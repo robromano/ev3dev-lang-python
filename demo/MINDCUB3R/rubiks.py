@@ -49,6 +49,7 @@ class Rubiks(object):
         self.init_motors()
         self.state = ['U', 'D', 'F', 'L', 'B', 'R']
         self.scan_iters = 1 # args.scan_iters
+        self.color_iters = defaultdict(dict) # stores colors of each scan iter
         signal.signal(signal.SIGTERM, self.signal_term_handler)
         signal.signal(signal.SIGINT, self.signal_int_handler)
 
@@ -325,7 +326,6 @@ class Rubiks(object):
         populate the crayola_colors in rubiks_rgb_solver.py
         """
         log.info("scan_middle()")
-        self.color_iters = defaultdict(dict)
         self.colors = {}
         self.k = 0
         self.scan_middle(1)
