@@ -570,6 +570,7 @@ class Rubiks(object):
         self.cube_done()
 
     def cube_done(self):
+        ev3.Sound.speak("The Rubik's cube is solved!").wait()
         self.flipper_away()
 
     def wait_for_cube_insert(self):
