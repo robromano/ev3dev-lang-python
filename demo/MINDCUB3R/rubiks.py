@@ -569,8 +569,12 @@ class Rubiks(object):
             raise
             
         actions = output.strip().split()
+        if actions[0].startswith("ERROR"):
+            log.error(actions[0])
+            return False
         self.run_kociemba_actions(actions)
         self.cube_done()
+        return True
 
     def cube_done(self):
         ev3.Sound.speak("The Rubik's cube is solved!").wait()
