@@ -9,6 +9,7 @@ from subprocess import check_output
 from collections import defaultdict
 import subprocess
 from time import sleep
+import argparse
 import json
 import logging
 import os
@@ -38,7 +39,7 @@ class Rubiks(object):
     flip_speed_push = 400
     corner_to_edge_diff = 60
 
-    def __init__(self):
+    def __init__(self, args):
         self.shutdown = False
         self.flipper = LargeMotor(OUTPUT_A)
         self.turntable = LargeMotor(OUTPUT_B)
@@ -555,6 +556,8 @@ class Rubiks(object):
         if self.shutdown:
             return
 
+        ev3.Sound.speak("Let's solve this thing now.").wait()
+
         try:
             ret, output = subprocess.getstatusoutput("kociemba " + ''.join(map(str, self.cube_kociemba)))
             if ret != 0:
@@ -621,6 +624,10 @@ def go(rub, log):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--tries', default=3)
+    args = parser.parse_args()
+
     # logging.basicConfig(filename='rubiks.log',
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(filename)12s %(levelname)8s: %(message)s')
@@ -633,7 +640,7 @@ if __name__ == '__main__':
     rub = None
     for i in range(10):
         try:
-            rub = Rubiks()
+            rub = Rubiks(args)
             go(rub, log)
             break
         except subprocess.CalledProcessError as e:
