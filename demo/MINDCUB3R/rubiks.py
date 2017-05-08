@@ -523,6 +523,7 @@ class Rubiks(object):
 
     def run_kociemba_actions(self, actions):
         log.info('Action (kociemba): %s' % ' '.join(actions))
+        ev3.Sound.speak("Let's solve this thing now.").wait()
         total_actions = len(actions)
 
         for (i, a) in enumerate(actions):
@@ -555,8 +556,6 @@ class Rubiks(object):
 
         if self.shutdown:
             return
-
-        ev3.Sound.speak("Let's solve this thing now.").wait()
 
         try:
             ret, output = subprocess.getstatusoutput("kociemba " + ''.join(map(str, self.cube_kociemba)))
